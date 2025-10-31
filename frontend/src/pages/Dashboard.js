@@ -8,7 +8,6 @@ import moment from 'moment';
 const Dashboard = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [recentBookings, setRecentBookings] = useState([]);
   const [upcomingBookings, setUpcomingBookings] = useState([]);
   const [facilities, setFacilities] = useState([]);
   const [stats, setStats] = useState({
@@ -45,7 +44,6 @@ const Dashboard = () => {
         moment(booking.startTime).isAfter(moment())
       );
 
-      setRecentBookings(bookings.slice(0, 5));
       setUpcomingBookings(upcoming.slice(0, 3));
       setFacilities(facilitiesResponse.data.facilities || []);
 

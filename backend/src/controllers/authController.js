@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
 const User = require('../models/User');
-const { setUserContext } = require('../database/connection');
 
 const generateToken = (userId) => {
   return jwt.sign(

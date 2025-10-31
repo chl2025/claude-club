@@ -25,7 +25,7 @@ const authMiddleware = async (req, res, next) => {
 
       req.user = user;
       next();
-    } catch (jwtError) {
+    } catch {
       return res.status(401).json({ error: 'Invalid token.' });
     }
   } catch (error) {
@@ -66,7 +66,7 @@ const optionalAuth = async (req, res, next) => {
         if (user && user.status === 'active') {
           req.user = user;
         }
-      } catch (jwtError) {
+      } catch {
         // Token is invalid, but we continue without authentication
       }
     }

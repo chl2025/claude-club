@@ -1,7 +1,7 @@
 -- Leisure Club Management System Database Schema
 -- PostgreSQL Schema with audit trail support
 
--- Enable UUID extension
+-- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create audit trigger function
@@ -143,14 +143,35 @@ CREATE TABLE bookings (
     total_cost DECIMAL(10,2) DEFAULT 0.00,
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 
-    -- Prevent overlapping bookings for the same facility
-    CONSTRAINT no_overlapping_bookings EXCLUDE USING GIST (
-        facility_id WITH =,
-        daterange(start_time, end_time) WITH &&
-    )
 );
+
+-- Create trigger function to prevent overlapping bookings
+CREATE OR REPLACE FUNCTION prevent_overlapping_bookings()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM bookings
+        WHERE facility_id = NEW.facility_id
+        AND id != COALESCE(NEW.id, 0)
+        AND status IN ('confirmed', 'completed')
+        AND (
+            (start_time <= NEW.start_time AND end_time > NEW.start_time) OR
+            (start_time < NEW.end_time AND end_time >= NEW.end_time) OR
+            (start_time >= NEW.start_time AND end_time <= NEW.end_time)
+        )
+    ) THEN
+        RAISE EXCEPTION 'Booking conflicts with existing booking for this facility';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for overlapping bookings prevention
+CREATE TRIGGER check_overlapping_bookings
+    BEFORE INSERT OR UPDATE ON bookings
+    FOR EACH ROW EXECUTE FUNCTION prevent_overlapping_bookings();
 
 CREATE TABLE transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -263,7 +284,9 @@ SELECT
     f.type,
     COUNT(b.id) as total_bookings,
     COUNT(CASE WHEN b.start_time >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as bookings_last_30_days,
-    AVG(CASE WHEN b.rating IS NOT NULL THEN b.rating END) as average_rating
+    COUNT(CASE WHEN b.status = 'completed' THEN 1 END) as completed_bookings,
+    COALESCE(AVG(fb.rating), 0) as average_rating
 FROM facilities f
 LEFT JOIN bookings b ON f.id = b.facility_id
+LEFT JOIN feedback fb ON f.id = fb.target_id AND fb.target_type = 'facility' AND fb.status = 'reviewed'
 GROUP BY f.id, f.name, f.type;
