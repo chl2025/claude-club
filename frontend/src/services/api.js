@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = 'http://ubua.ainets.cc:5000/api';
+
+console.log('🔍 API Service: Using base URL:', API_BASE_URL);
 
 // Create axios instance with default configuration
 const api = axios.create({
@@ -10,6 +12,31 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Add request/response logging
+api.interceptors.request.use(
+  (config) => {
+    console.log('🔍 API Request:', config.method?.toUpperCase(), config.url, config.data);
+    return config;
+  },
+  (error) => {
+    console.log('🔍 API Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+api.interceptors.response.use(
+  (response) => {
+    console.log('🔍 API Response:', response.status, response.config.url);
+    return response;
+  },
+  (error) => {
+    console.log('🔍 API Response Error:', error.message);
+    console.log('🔍 API Response Config:', error.config);
+    console.log('🔍 API Response Code:', error.code);
+    return Promise.reject(error);
+  }
+);
 
 // Request interceptor to add auth token
 api.interceptors.request.use(

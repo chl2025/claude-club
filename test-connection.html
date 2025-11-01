@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend Connection Test</title>
+</head>
+<body>
+    <h1>Backend Connection Test</h1>
+    <button onclick="testConnection()">Test Backend Connection</button>
+    <button onclick="testRegistration()">Test Registration</button>
+    <div id="results"></div>
+
+    <script>
+        async function testConnection() {
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/health');
+                const data = await response.json();
+                document.getElementById('results').innerHTML =
+                    '<h3>Health Check Success:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('results').innerHTML =
+                    '<h3>Health Check Failed:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+
+        async function testRegistration() {
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'test123456',
+                        firstName: 'Test',
+                        lastName: 'User'
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('results').innerHTML =
+                    '<h3>Registration Result:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('results').innerHTML =
+                    '<h3>Registration Failed:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+    </script>
+</body>
+</html>

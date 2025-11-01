@@ -19,7 +19,7 @@ app.use(helmet());
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
     ? ['https://yourdomain.com']
-    : ['http://localhost:3000', 'http://localhost:3001'],
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://ubua.ainets.cc:3000'],
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -39,9 +39,18 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request logging middleware
+// Enhanced request logging middleware
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - IP: ${req.ip}`);
+  const start = Date.now();
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - IP: ${req.ip} - User-Agent: ${req.get('User-Agent')}`);
+  console.log(`${new Date().toISOString()} - Request Headers:`, JSON.stringify(req.headers, null, 2));
+
+  // Log response when finished
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${new Date().toISOString()} - Response: ${res.statusCode} - Duration: ${duration}ms`);
+  });
+
   next();
 });
 
@@ -78,17 +87,27 @@ app.get('/api/health/db', async (req, res) => {
   }
 });
 
-// 404 handler
+// 404 handler with enhanced logging
 app.use('*', (req, res) => {
+  console.error(`${new Date().toISOString()} - 404 Not Found: ${req.method} ${req.originalUrl} - IP: ${req.ip}`);
   res.status(404).json({
     error: 'Route not found',
-    path: req.originalUrl
+    path: req.originalUrl,
+    method: req.method,
+    timestamp: new Date().toISOString()
   });
 });
 
-// Global error handler
+// Enhanced global error handler
 app.use((error, req, res) => {
-  console.error('Global error handler:', error);
+  console.error(`${new Date().toISOString()} - GLOBAL ERROR HANDLER:`, error);
+  console.error(`${new Date().toISOString()} - Request details:`, {
+    method: req.method,
+    url: req.originalUrl,
+    ip: req.ip,
+    headers: req.headers,
+    body: req.body
+  });
 
   // Handle specific error types
   if (error.name === 'ValidationError') {
@@ -134,11 +153,12 @@ process.on('SIGINT', async () => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🗄️  Database health: http://localhost:${PORT}/api/health/db`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 Listening on: 0.0.0.0:${PORT} (IPv4)`);
 });
 
 module.exports = app;

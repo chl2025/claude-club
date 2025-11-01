@@ -11,6 +11,7 @@
     "test:watch": "jest --watch",
     "test:api": "node test-api.js",
     "test:api:quick": "node quick-test.js",
+    "test:connectivity": "node test-connectivity.js",
     "db:migrate": "node src/database/migrate.js",
     "db:migrate:safe": "node src/database/safe-migrate.js",
     "db:seed": "node src/database/seed.js"

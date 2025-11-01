@@ -27,6 +27,8 @@ A comprehensive web application for managing leisure club memberships, facility 
 - **JWT** - Authentication tokens
 - **Joi** - Data validation
 - **Bcrypt** - Password hashing
+- **Helmet.js** - Security headers
+- **CORS** - Cross-origin resource sharing
 
 ### Frontend
 - **React** - UI framework
@@ -44,6 +46,50 @@ A comprehensive web application for managing leisure club memberships, facility 
 - CSRF protection
 - Rate limiting
 - Secure password hashing
+
+## Current Deployment Configuration
+
+### Architecture Overview
+- **Cloud Server**: Running on private IP with NAT routing
+- **Public Access**: Via DNS name (e.g., `your-domain.com`)
+- **Network Setup**: Public IP → NAT → Private IP → Server
+- **Direct Connection**: No proxy/reverse proxy (nginx stopped to avoid conflicts)
+
+### Server Configuration
+- **Frontend**: React development server on port 3000
+- **Backend**: Node.js/Express server on port 5000
+- **Database**: PostgreSQL on default port 5432
+- **API Access**: Direct connection to `http://your-domain.com:5000/api`
+
+### Current Settings
+
+#### Frontend Configuration (`frontend/src/services/api.js`)
+```javascript
+const API_BASE_URL = 'http://your-domain.com:5000/api';
+```
+
+#### Backend Configuration (`backend/src/app.js`)
+- **CORS Origins**: `['http://localhost:3000', 'http://localhost:3001', 'http://your-domain.com:3000']`
+- **Listening**: `0.0.0.0:5000` (all interfaces)
+- **Environment**: Development
+
+#### Logging Configuration
+- **Access Log**: Console output with enhanced request/response logging
+- **Error Log**: Console output with detailed error information
+- **Request Details**: Timestamp, method, path, IP, headers, response time
+
+### Important Notes
+
+#### nginx Configuration Issue
+- **Problem**: nginx proxy headers conflict with backend security middleware (Helmet.js + CORS)
+- **Solution**: nginx service should be stopped for direct API access
+- **Location**: `/etc/nginx/sites-available/cntv` was conflicting with direct connections
+- **Current Status**: nginx stopped to allow direct frontend-backend communication
+
+#### Network Security
+- **Backend**: Only accessible via API endpoints, no direct database exposure
+- **Frontend**: Served via development server with direct API calls
+- **CORS**: Configured to allow legitimate origins only
 
 ## Project Structure
 
@@ -128,10 +174,10 @@ leisure-club/
 
 5. **Start the backend server**:
    ```bash
-   npm run dev
+   npm start
    ```
 
-   The API will be available at `http://localhost:5000`
+   The API will be available at `http://your-domain.com:5000`
 
 ### Frontend Setup
 
@@ -145,28 +191,30 @@ leisure-club/
    npm install
    ```
 
-3. **Set up environment variables**:
-   Create `.env` file:
-   ```env
-   REACT_APP_API_URL=http://localhost:5000/api
-   ```
+3. **Remove proxy configuration** (if present):
+   Ensure `package.json` does not contain a proxy field that might interfere with direct API access.
 
 4. **Start the frontend development server**:
    ```bash
    npm start
    ```
 
-   The application will be available at `http://localhost:3000`
+   The application will be available at `http://your-domain.com:3000`
+
+## Access & URL Configuration
+
+### Public URLs
+- **Frontend**: `http://your-domain.com:3000`
+- **Backend API**: `http://your-domain.com:5000/api`
+- **Health Check**: `http://your-domain.com:5000/api/health`
+
+### Local Development URLs (if needed)
+- **Frontend**: `http://localhost:3000`
+- **Backend API**: `http://localhost:5000/api`
 
 ## Default Credentials
 
-After running migrations, you can use these default credentials:
-
-**Admin Account:**
-- Email: `admin@leisureclub.com`
-- Password: `admin123`
-
-**Member Account:** (You'll need to register one through the UI)
+After running migrations, you can register new accounts through the web interface. The system does not include pre-configured admin accounts for security reasons.
 
 ## API Documentation
 
@@ -188,6 +236,10 @@ After running migrations, you can use these default credentials:
 - `GET /api/bookings` - List user bookings
 - `GET /api/bookings/:id` - Get booking details
 - `DELETE /api/bookings/:id` - Cancel booking
+
+### Health Check Endpoints
+- `GET /api/health` - Service health check
+- `GET /api/health/db` - Database connectivity check
 
 ### Admin Endpoints
 - `GET /api/bookings/admin/all` - List all bookings
@@ -213,7 +265,60 @@ The project includes ESLint and Prettier configurations for consistent code form
 ### Database Schema
 The database schema includes comprehensive audit logging, foreign key constraints, and indexes for optimal performance. See `backend/src/database/schema.sql` for the complete schema.
 
-## Deployment
+## Troubleshooting
+
+### Common Issues
+
+#### Connection Refused Errors
+- **Check**: Ensure backend is running on port 5000
+- **Verify**: API URL in frontend matches server configuration
+- **Network**: Confirm DNS resolution and firewall settings
+- **nginx**: Ensure nginx is stopped if proxy conflicts occur
+
+#### CORS Issues
+- **Origin**: Ensure frontend origin is in backend CORS whitelist
+- **Headers**: Check for conflicting proxy headers from nginx
+- **Direct**: Use direct connection without reverse proxy
+
+#### Database Connection
+- **Credentials**: Verify database credentials in `.env`
+- **Service**: Ensure PostgreSQL service is running
+- **Network**: Check database accessibility from backend
+
+### Log Locations
+
+#### Backend Logging
+- **Access Log**: Console output (configured with enhanced request/response logging)
+- **Error Log**: Console output with detailed error information
+- **Request Details**: Timestamp, method, path, IP, headers, response time
+- **Database Logs**: PostgreSQL system logs (location varies by OS)
+
+#### Frontend Logging
+- **Development Log**: Browser console during development
+- **Build Log**: Terminal output during `npm run build`
+- **Error Reporting**: Browser console for runtime errors
+
+#### Database Logs
+- **PostgreSQL Logs**: `/var/log/postgresql/` (location varies by OS and PostgreSQL version)
+- **Database Connection Logs**: Included in backend console output
+
+### Enhanced Backend Logging
+The backend includes comprehensive logging that displays:
+- Request timestamp, method, path, and IP address
+- Complete request headers for debugging
+- Response status codes and timing
+- Detailed error information with stack traces (development mode)
+- Database connection status
+
+## Production Deployment
+
+### Considerations
+1. **Reverse Proxy**: Configure nginx or Apache properly for production
+2. **Environment**: Set `NODE_ENV=production` for production
+3. **Database**: Use production-grade PostgreSQL configuration
+4. **Security**: Configure proper SSL/TLS certificates
+5. **Monitoring**: Implement proper logging and monitoring
+6. **Process Management**: Use PM2 or similar for process management
 
 ### Production Build
 
@@ -226,11 +331,8 @@ The database schema includes comprehensive audit logging, foreign key constraint
 2. **Backend production**:
    ```bash
    cd backend
-   npm start
+   NODE_ENV=production npm start
    ```
-
-### Docker Deployment (Coming Soon)
-Docker configuration will be added for easy deployment.
 
 ## Security Considerations
 
@@ -240,7 +342,8 @@ Docker configuration will be added for easy deployment.
 - SQL injection prevention through parameterized queries
 - Rate limiting on API endpoints
 - CORS configuration for cross-origin requests
-- Secure file upload handling (when implemented)
+- Security headers via Helmet.js
+- No proxy configuration conflicts (nginx stopped)
 
 ## Contributing
 
@@ -271,3 +374,6 @@ For support and questions:
 - [ ] Integration with access control systems
 - [ ] Membership card printing
 - [ ] Advanced scheduling features
+- [ ] Production-ready nginx configuration
+- [ ] Docker containerization
+- [ ] Automated testing pipeline

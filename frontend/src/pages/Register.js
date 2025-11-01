@@ -63,6 +63,7 @@ const Register = () => {
       newErrors.lastName = 'Last name is required';
     }
 
+    // Optional fields validation
     if (formData.dateOfBirth) {
       const today = new Date();
       const birthDate = new Date(formData.dateOfBirth);
@@ -72,6 +73,10 @@ const Register = () => {
       if (age < 18 || (age === 18 && monthDiff < 0)) {
         newErrors.dateOfBirth = 'You must be at least 18 years old';
       }
+    }
+
+    if (formData.phone && !/^\+?[\d\s\-()]+$/.test(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
     }
 
     setErrors(newErrors);
@@ -88,13 +93,27 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const { confirmPassword, ...userData } = formData;
-      const result = await register(userData);
+      // Remove confirmPassword and clean up empty optional fields
+      const { confirmPassword, phone, dateOfBirth, ...userData } = formData;
+
+      // Only include optional fields if they have values
+      const cleanedUserData = {
+        ...userData,
+        ...(phone && phone.trim() && { phone: phone.trim() }),
+        ...(dateOfBirth && { dateOfBirth })
+      };
+
+      console.log('🔍 Register Component: Form data:', formData);
+      console.log('🔍 Register Component: Cleaned data:', cleanedUserData);
+
+      const result = await register(cleanedUserData);
+      console.log('🔍 Register Component: Register result:', result);
 
       if (result.success) {
         toast.success('Registration successful! Welcome to Leisure Club!');
         navigate('/dashboard');
       } else {
+        console.error('🔍 Register Component: Registration failed:', result.error);
         toast.error(result.error);
       }
     } catch (error) {

@@ -87,6 +87,18 @@ class User {
     return result.rows[0];
   }
 
+  static async updateStatus(id, status) {
+    const query = `
+      UPDATE users
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING id, status
+    `;
+
+    const result = await pool.query(query, [status, id]);
+    return result.rows[0];
+  }
+
   static async updateLastLogin(id) {
     const query = `
       UPDATE users

@@ -15,8 +15,8 @@ const registerSchema = Joi.object({
   password: Joi.string().min(8).required(),
   firstName: Joi.string().min(2).max(50).required(),
   lastName: Joi.string().min(2).max(50).required(),
-  phone: Joi.string().optional(),
-  address: Joi.string().optional(),
+  phone: Joi.string().allow('').optional(),
+  address: Joi.string().allow('').optional(),
   dateOfBirth: Joi.date().optional()
 });
 
@@ -51,6 +51,12 @@ class AuthController {
         address,
         dateOfBirth
       });
+
+      // Auto-activate user for testing purposes
+      if (user.status === 'pending') {
+        await User.updateStatus(user.id, 'active');
+        user.status = 'active';
+      }
 
       const token = generateToken(user.id);
 
