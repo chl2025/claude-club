@@ -18,7 +18,7 @@ const Facilities = () => {
     try {
       setLoading(true);
       const response = await facilitiesAPI.getAll();
-      setFacilities(response.data || []);
+      setFacilities(response.data.facilities || []);
     } catch (error) {
       toast.error('Failed to load facilities');
       console.error('Error loading facilities:', error);
