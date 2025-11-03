@@ -9,6 +9,7 @@ const { pool } = require('./database/connection');
 const authRoutes = require('./routes/auth');
 const bookingRoutes = require('./routes/bookings');
 const facilityRoutes = require('./routes/facilities');
+const membershipRoutes = require('./routes/memberships');
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/facilities', facilityRoutes);
+app.use('/api/memberships', membershipRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

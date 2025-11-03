@@ -12,9 +12,9 @@
     "test:api": "node test-api.js",
     "test:api:quick": "node quick-test.js",
     "test:connectivity": "node test-connectivity.js",
-    "db:migrate": "node src/database/migrate.js",
+    "db:migrate": "node -r dotenv/config src/database/migrate.js",
     "db:migrate:safe": "node src/database/safe-migrate.js",
-    "db:seed": "node src/database/seed.js"
+    "db:seed": "node -r dotenv/config src/database/seed.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -134,6 +134,20 @@ class Booking {
     return result.rows[0];
   }
 
+  static async findByIdAndUser(id, userId) {
+    const query = `
+      SELECT b.*, u.first_name, u.last_name, u.email,
+             f.name as facility_name, f.type as facility_type, f.location
+      FROM bookings b
+      JOIN users u ON b.user_id = u.id
+      JOIN facilities f ON b.facility_id = f.id
+      WHERE b.id = $1
+    `;
+
+    const result = await pool.query(query, [id]);
+    return result.rows[0];
+  }
+
   static async findByUserId(userId, filters = {}) {
     let query = `
       SELECT b.*, f.name as facility_name, f.type as facility_type, f.location

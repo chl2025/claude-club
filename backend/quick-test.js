@@ -147,7 +147,7 @@ async function testFacilities() {
       console.log(`✅ Create Facility: ${createFacility.status}`);
 
       if (createFacility.status === 201) {
-        const facilityId = createFacility.data.id;
+        const facilityId = createFacility.data.facility.id;
 
         // Get specific facility
         const facility = await makeRequest('GET', `/api/facilities/${facilityId}`, null, adminHeaders);
@@ -217,6 +217,7 @@ async function runQuickTests() {
   await testAuth();
   await testFacilities();
   await testBookings();
+  await testBookingAccessControl();
 
   console.log('\n✨ Quick tests completed!');
   console.log('\n📋 Available Endpoints:');
@@ -227,6 +228,85 @@ async function runQuickTests() {
   console.log('\n👑 Admin Credentials: admin@leisureclub.com / admin123');
 }
 
+async function testBookingAccessControl() {
+  console.log('\n🔒 Testing Booking Access Control...\n');
+
+  try {
+    // Create User A (a non-admin user)
+    const userAEmail = `testuserA_${Date.now()}@example.com`;
+    await makeRequest('POST', '/api/auth/register', {
+      email: userAEmail,
+      password: 'password123',
+      firstName: 'User',
+      lastName: 'A'
+    });
+    const loginA = await makeRequest('POST', '/api/auth/login', { email: userAEmail, password: 'password123' });
+    const tokenA = loginA.data.token;
+    const userIdA = loginA.data.user.id;
+
+    // Grant User A an active membership
+    const adminLogin = await makeRequest('POST', '/api/auth/login', { email: 'admin@leisureclub.com', password: 'admin123' });
+    const adminToken = adminLogin.data.token;
+    const membershipTypes = await makeRequest('GET', '/api/memberships/types', null, { 'Authorization': `Bearer ${adminToken}` });
+    const basicMembershipType = membershipTypes.data.find(mt => mt.name === 'Basic');
+
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    const membershipData = {
+      userId: userIdA,
+      membershipTypeId: basicMembershipType.id,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+      paymentDetails: { method: 'credit_card', transactionId: 'txn_12345' }
+    };
+    await makeRequest('POST', '/api/memberships', membershipData, { 'Authorization': `Bearer ${adminToken}` });
+
+    // Create User B
+    const userBEmail = `testuserB_${Date.now()}@example.com`;
+    await makeRequest('POST', '/api/auth/register', {
+      email: userBEmail,
+      password: 'password123',
+      firstName: 'User',
+      lastName: 'B'
+    });
+    const loginB = await makeRequest('POST', '/api/auth/login', { email: userBEmail, password: 'password123' });
+    const tokenB = loginB.data.token;
+
+    // User A creates a booking
+    // First, find an available facility
+    const facilities = await makeRequest('GET', '/api/facilities', null, { 'Authorization': `Bearer ${tokenA}` });
+    const facilityId = facilities.data.facilities[0].id; // Use the first available facility
+
+    // Construct a valid booking time in the future
+    const startTime = new Date();
+    startTime.setDate(startTime.getDate() + 1);
+    startTime.setHours(10, 0, 0, 0);
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour booking
+
+    const bookingData = {
+      facilityId: facilityId,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString()
+    };
+
+    const booking = await makeRequest('POST', '/api/bookings', bookingData, { 'Authorization': `Bearer ${tokenA}` });
+    const bookingId = booking.data.booking.id;
+
+    // User B tries to access User A's booking
+    const accessAttempt = await makeRequest('GET', `/api/bookings/${bookingId}`, null, { 'Authorization': `Bearer ${tokenB}` });
+
+    if (accessAttempt.status === 403 || accessAttempt.status === 404) {
+      console.log(`✅ Access Control Test Passed: User B was denied access to User A's booking (Status: ${accessAttempt.status})`);
+    } else {
+      console.error(`❌ Access Control Test Failed: User B could access User A's booking (Status: ${accessAttempt.status})`);
+    }
+
+  } catch (error) {
+    console.error('❌ Booking access control test failed:', error.message);
+  }
+}
 // Run tests if this file is executed directly
 if (require.main === module) {
   runQuickTests().catch(console.error);

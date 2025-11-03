@@ -87,11 +87,7 @@ class BookingController {
       if (req.user.role === 'admin' || req.user.role === 'staff') {
         booking = await Booking.findById(id);
       } else {
-        // Regular users can only view their own bookings
-        booking = await Booking.findById(id);
-        if (booking && booking.user_id !== userId) {
-          return res.status(403).json({ error: 'Access denied.' });
-        }
+        booking = await Booking.findByIdAndUser(id, userId);
       }
 
       if (!booking) {
