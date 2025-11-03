@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://ubua.ainets.cc:5000/api';
 
-console.log('🔍 API Service: Using base URL:', API_BASE_URL);
+console.log('🔍 API Service: Using base URL:', API_BASE_URL, 'Updated for external domain');
 
 // Create axios instance with default configuration
 const api = axios.create({

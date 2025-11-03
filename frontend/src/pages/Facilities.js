@@ -32,7 +32,7 @@ const Facilities = () => {
       const response = await facilitiesAPI.getAvailability(facilityId, selectedDate);
       setSelectedFacility({
         ...facilities.find(f => f.id === facilityId),
-        availability: response.data
+        availability: response.data.availableSlots || []
       });
       setShowAvailability(true);
     } catch (error) {
@@ -168,19 +168,17 @@ const Facilities = () => {
                   <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <span className="font-medium">
-                        {moment(slot.start_time).format('h:mm A')} - {moment(slot.end_time).format('h:mm A')}
+                        {moment(slot.startTime).format('h:mm A')} - {moment(slot.endTime).format('h:mm A')}
                       </span>
-                      {slot.status && (
-                        <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                          slot.status === 'available'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {slot.status}
-                        </span>
-                      )}
+                      <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                        slot.available
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {slot.available ? 'Available' : 'Booked'}
+                      </span>
                     </div>
-                    {slot.status === 'available' && (
+                    {slot.available && (
                       <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
                         Book
                       </button>

@@ -24,8 +24,8 @@ const Bookings = () => {
         facilitiesAPI.getAll()
       ]);
 
-      setBookings(bookingsResponse.data || []);
-      setFacilities(facilitiesResponse.data || []);
+      setBookings(bookingsResponse.data.bookings || []);
+      setFacilities(facilitiesResponse.data.facilities || []);
     } catch (error) {
       toast.error('Failed to load data');
       console.error('Error loading data:', error);
